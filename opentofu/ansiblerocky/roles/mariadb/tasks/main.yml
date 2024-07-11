@@ -1,0 +1,92 @@
+---
+- name: Install MariaDB
+  dnf:
+    name: 
+      - mariadb-server
+      - python3.9-pip
+    state: present
+
+- name: install pymysql
+  pip:
+    name: 
+      - pymysql
+    state: present
+
+- name: Start MariaDB
+  service:
+    name: mariadb.service
+    state: started
+
+- name: update mysql root password for root account
+  mysql_user:
+    name: root
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    host_all: yes
+    password: "{{ db_root_password }}"
+    priv: "*.*:ALL,GRANT"
+    check_implicit_admin: true
+
+- name: Update mysql root password for all root accounts
+  mysql_user:
+    name: root
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    host: "{{ item }}"
+    password: "{{ db_root_password }}"
+    login_user: root
+    login_password: "{{ db_root_password }}"
+  with_items:
+    - "{{ ansible_hostname }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  notify: restart mariadb
+
+- name: Delete anonymous MySQL server user for server hostname
+  mysql_user:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    user: ""
+    host: "{{ ansible_hostname }}"
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    state: absent
+  notify: restart mariadb
+
+- name: Delete anonymous MySQL server user for localhost
+  mysql_user:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    user: ""
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    state: absent
+  notify: restart mariadb
+
+- name: Remove the MySQL test database
+  mysql_db:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    db: test
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    state: absent
+  notify: restart mariadb
+
+- name: Create WP DB
+  mysql_db:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    db: "{{ db_name }}"
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    state: present
+  notify: restart mariadb
+
+- name: Create WP database user
+  mysql_user:
+    login_unix_socket: /var/lib/mysql/mysql.sock
+    name: '{{ db_user_name }}'
+    password: '{{ db_user_password }}'
+    priv: "{{ db_name }}.*:ALL"
+    host: localhost
+    login_user: root
+    login_password: "{{ db_root_password }}"
+    state: present
+    update_password: on_create
+  notify: restart mariadb

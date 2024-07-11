@@ -1,0 +1,93 @@
+---
+- name: Install php
+  apt:
+    name:
+      - software-properties-common
+      - php{{ php_version }}
+    state: present
+  register: result
+  until: result is not failed
+  retries: 5
+  delay: 5
+
+- name: Install php drivers
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - php{{ php_version }}-fpm
+    - php{{ php_version }}-common
+    - php{{ php_version }}-mysql
+    - php{{ php_version }}-xml
+    - php{{ php_version }}-xmlrpc
+    - php{{ php_version }}-curl
+    - php{{ php_version }}-gd
+    - php{{ php_version }}-imagick
+    - php{{ php_version }}-cli
+    - php{{ php_version }}-dev
+    - php{{ php_version }}-imap
+    - php{{ php_version }}-mbstring
+    - php{{ php_version }}-opcache
+    - php{{ php_version }}-redis
+    - php{{ php_version }}-soap
+    - php{{ php_version }}-zip
+  register: result
+  until: result is not failed
+  retries: 5
+  delay: 5
+
+- name: Set PHP user
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: "^user"
+    line: "user = {{ web_user }}"
+    state: present
+  notify: restart php
+
+- name: Set PHP group
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: "^group"
+    line: "group = {{ web_user }}"
+    state: present
+  notify: restart php
+
+- name: Set PHP listen owner
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: "^listen\\.owner"
+    line: "listen.owner = {{ web_user }}"
+    state: present
+  notify: restart php
+
+- name: Set PHP listen group
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: "^listen\\.group"
+    line: "listen.group = {{ web_user }}"
+    state: present
+  notify: restart php
+
+- name: Set PHP upload max filesize
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/php.ini
+    regexp: "^upload_max_filesize"
+    line: "upload_max_filesize = 128M"
+    state: present
+  notify: reload php
+
+- name: Set PHP post max filesize
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/php.ini
+    regexp: "^post_max_size"
+    line: "post_max_size = 128M"
+    state: present
+  notify: reload php
+
+- name: Set PHP post max filesize
+  lineinfile:
+    dest: /etc/php/{{ php_version }}/fpm/php.ini
+    regexp: "^post_max_size"
+    line: "post_max_size = 128M"
+    state: present
+  notify: reload php

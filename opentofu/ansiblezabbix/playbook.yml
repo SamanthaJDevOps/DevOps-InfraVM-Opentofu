@@ -1,0 +1,60 @@
+---
+  - name: Configure Zabbix Server
+    hosts: localhost
+    tasks:
+    - name: Set api configuration facts
+      set_fact:
+        ansible_user: Admin
+        ansible_httpapi_pass: !unsafe zabbix
+        ansible_connection: httpapi
+        ansible_httpapi_port: "{{ server_web_port }}"
+        ansible_network_os: community.zabbix.zabbix
+        ansible_httpapi_use_ssl: false
+        ansible_httpapi_validate_certs: false
+        ansible_zabbix_url_path: ""
+        ansible_host: "{{ server_web_ip }}"
+
+    - name: Add proxy
+      zabbix_proxy:
+        proxy_name: "{{ proxy_hostname }}"
+        status: active
+        state: present
+        proxy_address: "{{ proxy_address }}"
+
+    - name: Add ubuntu agent
+      zabbix_host:
+        host_name: "{{ ubuntu_agent_hostname }}"
+        visible_name: "{{ ubuntu_agent_hostname }}"
+        description: "{{ ubuntu_agent_hostname }}"
+        host_groups:
+          - Linux servers
+        link_templates:
+          - Linux by Zabbix agent
+        status: enabled
+        state: present
+        interfaces:
+          - type: 1
+            main: 1
+            useip: 1
+            ip: "{{ ubuntu_ip }}"
+            port: 10050
+        proxy: "{{ proxy_hostname }}"
+
+    - name: Add rocky agent
+      zabbix_host:
+        host_name: "{{ rocky_agent_hostname }}"
+        visible_name: "{{ rocky_agent_hostname }}"
+        description: "{{ rocky_agent_hostname }}"
+        host_groups:
+          - Linux servers
+        link_templates:
+          - Linux by Zabbix agent
+        status: enabled
+        state: present
+        interfaces:
+          - type: 1
+            main: 1
+            useip: 1
+            ip: "{{ rocky_ip }}"
+            port: 10050
+        proxy: "{{ proxy_hostname }}"

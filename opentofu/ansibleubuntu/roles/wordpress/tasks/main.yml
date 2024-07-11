@@ -1,0 +1,24 @@
+---
+- name: Prepare directory
+  file:
+    path: /home/{{ web_user }}/www
+    state: directory
+    mode: 0775
+    owner: "{{ web_user }}"
+    group: "{{ web_user }}"
+
+- name: Install WP-CLI
+  get_url:
+    url: https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+    dest: /usr/bin/wp
+    mode: 0775
+
+- name: Download WordPress to domain directory via wp-cli
+  shell: sudo -u {{ web_user }} -i -- wp core download --path=/home/{{ web_user }}/www 
+
+- name: Setup WordPress Config using wp-cli
+  shell: sudo -u {{ web_user }} -i -- wp config create --path=/home/{{ web_user }}/www --dbname={{ db_name | quote }} --dbuser={{ db_user_name | quote }} --dbpass={{ db_user_password | quote }}
+
+- name: Install WordPress using wp-cli
+  shell: sudo -u {{ web_user }} -i -- wp core install --path=/home/{{ web_user }}/www --url={{ address }} --title={{ wp_site_title | quote }} --admin_user={{ wp_admin_user | quote }} --admin_password={{ wp_admin_password | quote }} --admin_email={{ wp_admin_email | quote }}
+  notify: restart nginx

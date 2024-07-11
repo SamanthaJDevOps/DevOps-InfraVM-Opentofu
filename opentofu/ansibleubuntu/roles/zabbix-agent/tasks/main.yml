@@ -1,0 +1,46 @@
+---
+- name: Get package
+  get_url:
+    url: https://repo.zabbix.com/zabbix/7.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_7.0-2+ubuntu24.04_all.deb
+    dest: /home/{{ web_user }}/zabbix-release_7.0-2+ubuntu24.04_all.deb
+
+- name: dpkg
+  shell: sudo dpkg -i /home/{{ web_user }}/zabbix-release_7.0-2+ubuntu24.04_all.deb
+
+- name: update
+  apt:
+    update_cache: yes
+
+- name: install zabbix agent
+  apt:
+    name: 
+      - zabbix-agent2
+      - zabbix-agent2-plugin-*
+    state: present
+  register: result
+  until: result is not failed
+  retries: 5
+  delay: 5
+  notify: start zabbix
+
+- name: configure connection to zabbix server
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^Server=127.0.0.1"
+    line: "Server={{ zabbix_proxy_ip }}"
+    state: present
+
+- name: configure connection to zabbix server
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^ServerActive=127.0.0.1"
+    line: "ServerActive={{ zabbix_proxy_ip }}:{{ zabbix_proxy_port }}"
+    state: present
+
+- name: configure hostname of zabbix agent
+  lineinfile:
+    dest: /etc/zabbix/zabbix_agent2.conf
+    regexp: "^Hostname=Zabbix server"
+    line: "Hostname={{ zabbix_agent_hostname }}"
+    state: present
+  notify: restart zabbix

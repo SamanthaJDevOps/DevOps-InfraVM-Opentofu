@@ -1,0 +1,17 @@
+---
+- name: restart nginx
+
+  block:
+    - name: Ensure no apache2 server is running
+      service:
+        name: apache2
+        state: stopped
+        enabled: false
+      ignore_errors: true
+      listen: "restart nginx"
+ 
+    - name: Restart
+      service:
+        name: nginx
+        state: restarted
+      listen: "restart nginx"

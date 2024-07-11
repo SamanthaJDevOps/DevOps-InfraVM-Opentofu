@@ -1,0 +1,28 @@
+#cloud-config
+ssh_pwauth: true
+disable_root: false
+users:
+  - name: ${username}
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    groups: users, admin, sudo
+    home: /home/${username}
+    shell: /bin/bash
+    passwd: ${password}
+    lock_passwd: false
+    ssh-authorized-keys:
+      - ${sshpub}
+  - name: root
+    groups: admin
+    ssh-authorized-keys:
+      - ${sshpub}
+chpasswd:
+  list: |
+    root:${root_password}
+  expire: false
+keyboard:
+  layout: fr
+packages:
+  - openssh-server
+runcmd:
+  - systemctl enable ssh
+  - systemctl start ssh

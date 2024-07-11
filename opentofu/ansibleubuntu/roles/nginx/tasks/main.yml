@@ -1,0 +1,69 @@
+---
+- name: Install Nginx
+  apt:
+    name: nginx
+    state: present
+
+- name: Set Nginx user
+  lineinfile:
+    dest: /etc/nginx/nginx.conf
+    regexp: "^user"
+    line: "user {{ web_user }};"
+    state: present
+  notify: restart nginx
+
+- name: Update mime-type (for woff2)
+  blockinfile:
+    path: /etc/nginx/mime.types
+    insertbefore: "^}$"
+    block: |
+          application/font-woff2                woff2;
+          application/font-woff                woff;
+    state: present
+  notify: restart nginx
+
+- name: Nginx site conf
+  shell: |
+    echo 'server {
+        root /home/{{ web_user }}/www;
+        index index.html index.php;
+        server_name default_server;
+
+        listen 80 default_server;
+        listen [::]:80 default_server;
+
+        location / {
+            try_files $uri $uri/ /index.php?$args;
+        }
+
+        location = /favicon.ico {
+            log_not_found off;
+            access_log off;
+        }
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+            expires max;
+            log_not_found off;
+        }
+
+        location ~* \.(eot|otf|ttf|woff|woff2)$ {
+            add_header Access-Control-Allow-Origin *;
+            expires max;
+        }
+
+        location = /robots.txt {
+            allow all;
+            log_not_found off;
+            access_log off;
+        }
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_pass unix:/run/php/php{{ php_version }}-fpm.sock;
+        }
+
+    }' > /etc/nginx/sites-enabled/default
+  notify: restart nginx
+  notify: restart php
